@@ -1,11 +1,27 @@
+FROM python:3.8-slim AS builder
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+COPY requirements.txt .
+
+RUN pip wheel --no-cache-dir --wheel-dir=/wheels -r requirements.txt
+
+
 FROM python:3.8-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libpq5 \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY . .
+COPY --from=builder /wheels /wheels
+RUN pip install --no-cache-dir --no-index /wheels/* \
+    && rm -rf /wheels
 
+COPY app.py .
 EXPOSE 5001
 CMD ["python", "app.py"]

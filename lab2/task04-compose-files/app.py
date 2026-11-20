@@ -8,7 +8,8 @@ app = Flask(__name__)
 def index():
     conn = psycopg2.connect(
         # ВПИШИТЕ имя сервиса базы данных из docker-compose.yml:
-        host="____",
+        host="db",
+        port="5432",
         database="mydb",
         user="postgres",
         password="mysecretpassword",
@@ -24,4 +25,10 @@ def index():
 
 
 if __name__ == "__main__":
+    # chunks = []
+    # import time
+    # while True:
+    #     chunks.append(bytearray(10 * 1024 * 1024))
+    #     chunks[-1][:] = b"x" * len(chunks[-1])
+    #     time.sleep(0.1)
     app.run(host="0.0.0.0", port=5001)

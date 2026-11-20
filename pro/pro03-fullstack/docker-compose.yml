@@ -1,0 +1,54 @@
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+    ports:
+      - "5001:5001"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_started
+
+  db:
+    image: postgres:17-alpine
+    container_name: postgres_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DATABASE}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./app/docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  cache:
+    image: redis:7-alpine
+    container_name: redis_db
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_USER: ${REDIS_USER}
+      REDIS_USER_PASSWORD: ${REDIS_USER_PASSWORD}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        printf 'user default on >%s ~* &* +@all\nuser %s on >%s ~* &* +@all\n' \
+          "$$REDIS_PASSWORD" "$$REDIS_USER" "$$REDIS_USER_PASSWORD" > /tmp/users.acl
+        exec redis-server --appendonly yes --aclfile /tmp/users.acl
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
